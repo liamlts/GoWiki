@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
-	"html/template"
 	"path/filepath"
 	"strings"
+	"text/template"
+
+	"github.com/gomarkdown/markdown"
+	"github.com/microcosm-cc/bluemonday"
 
 	"log"
 
@@ -79,8 +82,10 @@ func saveHandler(w http.ResponseWriter, r *http.Request, title string) {
 
 	str_body := r.FormValue("body")
 	body := []byte(str_body)
+	html_body := markdown.ToHTML(body, nil, nil)
+	safe_html := bluemonday.UGCPolicy().SanitizeBytes(html_body)
 
-	p := &Page{Title: title, Body: body}
+	p := &Page{Title: title, Body: safe_html}
 
 	err := p.save()
 
