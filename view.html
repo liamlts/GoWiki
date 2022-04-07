@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+        <link rel="stylesheet" href="/static/style.css">
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{{.Title}} | Go Wiki</title>
+</head>
+</body>
+<div id="menu-bar">
+        <div id="menu" onclick="onClickMenu()">
+                <div id="bar1" class="bar"></div>
+                <div id="bar2" class="bar"></div>
+                <div id="bar3" class="bar"></div>
+        </div>
+        <ul class="nav" id="nav">
+                <li><h3>menu</h3></li>
+                <li><a href="/">Home</a></li>
+                <li><a href="/new">New Page</a></li>
+                <li><a href="#">About</a></li>
+        </ul>
+</div>
+<h1>Go Wiki</h1>
+<div class="menu-bg" id="menu-bg"></div>
+        <h1>{{.Title}}</h1>
+
+        <a href="/edit/{{.Title}}" class="button">Edit</a>
+
+        <div>{{printf "%s" .Body}}</div>
+        <script src="/static/script.js"></script> 
+</body>
+</html>
