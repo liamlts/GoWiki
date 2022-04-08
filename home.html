@@ -4,7 +4,7 @@
 	<link rel="stylesheet" href="/static/style.css" type="text/css">
 	<meta charset="utf-8"/>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Go Wiki | New Page</title>
+	<title>Go Wiki</title>
 </head>
 <body>
 	<div id="menu-bar">
@@ -21,10 +21,10 @@
 		</ul>
 	</div>
 	<h1>Go Wiki</h1>
-	<h3>Create a New Page</h3>
-	<form action="/new" method="POST">
-		Page:<input type="text" name="pagename">
-		<input type="submit" value="Create Page">
+	<h3>A wiki with a backend written in Go</h3>
+	<form action="/" method="POST">
+		SEARCH:<input type="text" name="search" value="">
+		<input type="submit">
 	</form>
 	<div class="menu-bg" id="menu-bg"></div>
 	<script src="/static/script.js"></script> 

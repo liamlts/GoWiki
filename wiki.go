@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
-	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -139,10 +138,51 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 
 }
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
-	fp := filepath.Join("static", "index.html")
-	http.ServeFile(w, r, fp)
+func search(query string) (string, error) {
+	pages, err := ioutil.ReadDir("pages/")
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	var pagelist []string
+
+	for _, page := range pages {
+		pagelist = append(pagelist, page.Name())
+	}
+
+	for i := range pagelist {
+		pagelist[i] = pagelist[i][:len(pagelist[i])-len(".txt")]
+	}
+
+	for n := range pagelist {
+		if strings.Contains(pagelist[n], query) {
+			return pagelist[n], nil
+		}
+	}
+	return "", err
+}
+
+func homeHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	if r.Method == "GET" {
+		http.ServeFile(w, r, "home.html")
+	} else if r.Method == "POST" {
+		query := r.Form["search"]
+		user_search := strings.Join(query, "")
+		user_search = strings.ReplaceAll(user_search, " ", "_")
+		fmt.Println(user_search)
+
+		pagename, err := search(user_search)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		p, err := loadPage(pagename)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		}
+		renderTemplate(w, "view", p)
+
+	}
 }
 
 func newPageHandler(w http.ResponseWriter, r *http.Request) {
