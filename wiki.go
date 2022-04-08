@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"math/rand"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -160,11 +162,42 @@ func newPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func GetRandomPage() string {
+	pages, err := ioutil.ReadDir("pages/")
+	if err != nil {
+		log.Fatal(err)
+	}
+	var pagenames []string
+
+	for _, page := range pages {
+		pagenames = append(pagenames, page.Name())
+	}
+
+	rPage := rand.Intn(len(pagenames))
+	extPage := pagenames[rPage]
+	nPage := extPage[:len(extPage)-len(".txt")]
+	fmt.Println(nPage)
+
+	return nPage
+}
+
+func randomHandler(w http.ResponseWriter, r *http.Request) {
+	p, err := loadPage(GetRandomPage())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	renderTemplate(w, "view", p)
+
+}
+
 func main() {
 
 	http.HandleFunc("/", homeHandler)
 
 	http.HandleFunc("/new", newPageHandler)
+
+	http.HandleFunc("/random", randomHandler)
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
