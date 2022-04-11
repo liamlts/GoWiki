@@ -85,8 +85,10 @@ func saveHandler(w http.ResponseWriter, r *http.Request, title string) {
 	body := []byte(str_body)
 	html_body := markdown.ToHTML(body, nil, nil)
 	safe_html := bluemonday.UGCPolicy().SanitizeBytes(html_body)
+	str_html := string(safe_html) + "\n"
+	html_full := []byte(str_html)
 
-	p := &Page{Title: title, Body: safe_html}
+	p := &Page{Title: title, Body: html_full}
 
 	err := p.save()
 
@@ -176,12 +178,16 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		p, err := loadPage(pagename)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
-		}
-		renderTemplate(w, "view", p)
+		if pagename != "" {
+			p, err := loadPage(pagename)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusNotFound)
+			}
+			renderTemplate(w, "view", p)
 
+		} else {
+			http.ServeFile(w, r, "home.html")
+		}
 	}
 }
 
@@ -202,7 +208,7 @@ func newPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetRandomPage() string {
+func GetRandomPage() (*Page, error) {
 	pages, err := ioutil.ReadDir("pages/")
 	if err != nil {
 		log.Fatal(err)
@@ -217,12 +223,16 @@ func GetRandomPage() string {
 	extPage := pagenames[rPage]
 	nPage := extPage[:len(extPage)-len(".txt")]
 	fmt.Println(nPage)
+	p, err := loadPage(nPage)
+	if err != nil {
+		return nil, err
+	}
 
-	return nPage
+	return p, nil
 }
 
 func randomHandler(w http.ResponseWriter, r *http.Request) {
-	p, err := loadPage(GetRandomPage())
+	p, err := GetRandomPage()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
