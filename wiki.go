@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/gomarkdown/markdown"
 	"github.com/microcosm-cc/bluemonday"
@@ -257,6 +258,12 @@ func main() {
 
 	http.HandleFunc("/save/", makeHandler(saveHandler))
 
-	log.Fatal(http.ListenAndServe("127.0.0.1:7000", nil))
+	srv := &http.Server{
+		Addr: "127.0.0.1:7000",
 
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+
+	log.Fatal(srv.ListenAndServe())
 }
