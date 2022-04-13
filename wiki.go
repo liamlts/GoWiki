@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -192,6 +194,86 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func exists() bool {
+	_, err := os.Stat("users/")
+	if err == nil {
+		return true
+	} else if os.IsNotExist(err) {
+		return false
+	}
+	return false
+}
+
+func logindir() {
+	if !exists() {
+		err := os.Mkdir("users", 0744)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+func hasAccount(uname string) bool {
+	_, err := os.Stat("users/" + uname + ".data")
+	if err == nil {
+		return true
+	} else if os.IsNotExist(err) {
+		return false
+	}
+	return false
+}
+
+func makeAccount(uname string, pword string) {
+	user, err := os.OpenFile("users/"+uname+".data",
+		os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	hasher := sha256.New()
+
+	bpass := []byte(pword)
+
+	hash := hasher.Sum(bpass)
+
+	if _, err := user.WriteString(hex.EncodeToString(hash)); err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+func loginSuccess(username string, pass string) bool {
+	uname := "users/" + username + ".data"
+	hpass, err := ioutil.ReadFile(uname)
+	if err != nil {
+		log.Fatal(err)
+	}
+	hasher := sha256.New()
+
+	upass := []byte(pass)
+
+	rhash := hasher.Sum(upass)
+	srhash := hex.EncodeToString(rhash)
+
+	return srhash == string(hpass)
+}
+
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		http.ServeFile(w, r, "login.html")
+	} else if r.Method == "POST" {
+		r.ParseForm()
+		uname := r.Form["username"]
+		pword := r.Form["password"]
+		if !hasAccount(uname[0]) {
+			makeAccount(uname[0], pword[0])
+		} else if loginSuccess(uname[0], pword[0]) {
+			w.Write([]byte("login successful"))
+		}
+
+	}
+}
+
 func newPageHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	if r.Method == "GET" {
@@ -243,12 +325,15 @@ func randomHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	logindir()
 
 	http.HandleFunc("/", homeHandler)
 
 	http.HandleFunc("/new", newPageHandler)
 
 	http.HandleFunc("/random", randomHandler)
+
+	http.HandleFunc("/login", loginHandler)
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
