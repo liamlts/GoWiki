@@ -259,6 +259,8 @@ func makeAccount(uname string, pword string) {
 		log.Fatal(err)
 	}
 
+	defer user.Close()
+
 	hasher := sha512.New()
 
 	bpass := []byte(pword)
