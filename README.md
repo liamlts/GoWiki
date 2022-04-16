@@ -7,3 +7,4 @@
 <li>Allow hyperlinks to have spaces.<i>(replace whitespace with underscores)</i></li>
 <li>Functioning search bar on homepage.</li>
 <li>Markdown support when making a page.</li>
+<li>login system with authentication.</li>

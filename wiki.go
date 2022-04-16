@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -26,7 +26,15 @@ type Page struct {
 	Title string
 
 	Body []byte
+
+	User User
 }
+
+type User struct {
+	Name string
+}
+
+var curUser string
 
 func (p *Page) save() error {
 
@@ -65,7 +73,6 @@ func viewHandler(w http.ResponseWriter, r *http.Request, title string) {
 	}
 
 	renderTemplate(w, "view", p)
-
 }
 
 func editHandler(w http.ResponseWriter, r *http.Request, title string) {
@@ -107,7 +114,7 @@ func saveHandler(w http.ResponseWriter, r *http.Request, title string) {
 
 }
 
-var templates = template.Must(template.ParseFiles("edit.html", "view.html"))
+var templates = template.Must(template.ParseFiles("edit.html", "view.html", "home.html"))
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 
@@ -121,7 +128,7 @@ func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 
 }
 
-var validPath = regexp.MustCompile("^/(edit|save|view|new)/([A-Za-z0-9_-]+)$")
+var validPath = regexp.MustCompile("^/(edit|save|view|new|random|login)/([A-Za-z0-9_-]+)$")
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
 
@@ -170,7 +177,20 @@ func search(query string) (string, error) {
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	if r.Method == "GET" {
-		http.ServeFile(w, r, "home.html")
+		if curUser == "" {
+			curUser = "Not Logged in"
+			user := User{Name: curUser}
+			err := templates.ExecuteTemplate(w, "home.html", user)
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			user := User{Name: curUser}
+			err := templates.ExecuteTemplate(w, "home.html", user)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 	} else if r.Method == "POST" {
 		query := r.Form["search"]
 		user_search := strings.Join(query, "")
@@ -189,7 +209,16 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 			renderTemplate(w, "view", p)
 
 		} else {
-			http.ServeFile(w, r, "home.html")
+			var user User
+			if curUser == "" {
+				user = User{Name: "not logged in"}
+			} else {
+				user = User{Name: curUser}
+			}
+			err := templates.ExecuteTemplate(w, "home.html", user)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }
@@ -230,7 +259,7 @@ func makeAccount(uname string, pword string) {
 		log.Fatal(err)
 	}
 
-	hasher := sha256.New()
+	hasher := sha512.New()
 
 	bpass := []byte(pword)
 
@@ -248,7 +277,7 @@ func loginSuccess(username string, pass string) bool {
 	if err != nil {
 		log.Fatal(err)
 	}
-	hasher := sha256.New()
+	hasher := sha512.New()
 
 	upass := []byte(pass)
 
@@ -268,7 +297,25 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		if !hasAccount(uname[0]) {
 			makeAccount(uname[0], pword[0])
 		} else if loginSuccess(uname[0], pword[0]) {
-			w.Write([]byte("login successful"))
+			exp := time.Now().Add(365 * 24 * time.Hour)
+			cookie := http.Cookie{Name: "username", Value: uname[0], Expires: exp}
+			http.SetCookie(w, &cookie)
+			r.AddCookie(&cookie)
+			val, err := r.Cookie("username")
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(val)
+			//personname := val.Value
+			user := User{Name: val.Value}
+			curUser = val.Value
+			//w.Write([]byte("login successful, welcome " + user.Name))
+			err = templates.ExecuteTemplate(w, "home.html", user)
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else if !loginSuccess(uname[0], pword[0]) {
+			w.Write([]byte("invalid password and or username"))
 		}
 
 	}
